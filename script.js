@@ -8,7 +8,7 @@
   /* ---------- Configuração ---------- */
   const CONFIG = {
     // DDI + DDD + número, somente dígitos. Ex.: "5511999999999"
-    whatsappNumber: '',
+    whatsappNumber: '5511972307467',
     brand: 'Aromaéssence',
     minIntervalMs: 3000 // evita envios repetidos em sequência
   };
