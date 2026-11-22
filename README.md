@@ -1,7 +1,5 @@
 # Aromaéssence
 
-Landing page responsiva para a Aromaéssence, marca de velas artesanais, aromas para casa, kits para presentear, cápsulas artesanais de cappuccino e kit de Natal com chocolate. O foco é converter visitantes em pedidos de orçamento por WhatsApp.
-
 > **Status:** versão demonstrativa. Imagens ilustrativas, produtos e condições comerciais sujeitos à confirmação da marca.
 
 ## Visão geral
@@ -57,7 +55,7 @@ Em `script.js`, preencha `whatsappNumber` com DDI + DDD + número, somente dígi
 
 ```js
 const CONFIG = {
-  whatsappNumber: '5511999999999',
+  whatsappNumber: '5511972307467',
   // ...
 };
 ```
