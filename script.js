@@ -1,260 +1,217 @@
-/* =========================================================
+'use strict';
+
+/* ==========================================================
    Aromaéssence — script.js
-   Módulos: config · utilidades · menu · header · reveal · produtos · formulário
-   ========================================================= */
-(() => {
-  'use strict';
+   Único ponto de configuração: CONFIG.whatsappNumber
+   (DDI + DDD + número, somente dígitos).
+   ========================================================== */
+const CONFIG = {
+  whatsappNumber: '5511972307467',
+  defaultMessage: 'Olá! Gostaria de fazer um pedido.',
+};
 
-  /* ---------- Configuração ---------- */
-  const CONFIG = {
-    // DDI + DDD + número, somente dígitos. Ex.: "5511999999999"
-    whatsappNumber: '5511972307467',
-    brand: 'Aromaéssence',
-    minIntervalMs: 3000 // evita envios repetidos em sequência
+const $ = (selector, ctx = document) => ctx.querySelector(selector);
+const $$ = (selector, ctx = document) => Array.from(ctx.querySelectorAll(selector));
+
+function whatsappUrl(text) {
+  return `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(text)}`;
+}
+
+/* Links com data-wa: o href do HTML funciona sem JS; aqui ele é
+   regenerado a partir de CONFIG para manter um número único. */
+function initWhatsAppLinks() {
+  $$('a[data-wa]').forEach((link) => {
+    const message = link.dataset.msg || CONFIG.defaultMessage;
+    link.href = whatsappUrl(message);
+    link.target = '_blank';
+    link.rel = 'noopener';
+  });
+}
+
+function initYear() {
+  const el = $('#year');
+  if (el) el.textContent = new Date().getFullYear();
+}
+
+/* ---------- Toast ---------- */
+let toastTimer;
+function showToast(message) {
+  const toast = $('#toast');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+/* ---------- Menu mobile ---------- */
+function initMenu() {
+  const button = $('#menuButton');
+  const nav = $('#navLinks');
+  if (!button || !nav) return;
+
+  const desktop = window.matchMedia('(min-width: 900px)');
+
+  const setOpen = (open) => {
+    nav.classList.toggle('open', open);
+    button.setAttribute('aria-expanded', String(open));
+    button.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
   };
 
-  /* ---------- Utilidades ---------- */
-  const $  = (sel, ctx = document) => ctx.querySelector(sel);
-  const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
+  button.addEventListener('click', () => setOpen(!nav.classList.contains('open')));
+  nav.addEventListener('click', (e) => { if (e.target.closest('a')) setOpen(false); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && nav.classList.contains('open')) { setOpen(false); button.focus(); }
+  });
+  document.addEventListener('click', (e) => {
+    if (nav.classList.contains('open') && !nav.contains(e.target) && !button.contains(e.target)) setOpen(false);
+  });
+  desktop.addEventListener('change', (e) => { if (e.matches) setOpen(false); });
+}
 
-  const sanitize = (value) =>
-    String(value ?? '').replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim();
+/* ---------- Header com sombra ao rolar ---------- */
+function initHeader() {
+  const header = $('#header');
+  if (!header) return;
+  const update = () => header.classList.toggle('scrolled', window.scrollY > 8);
+  update();
+  window.addEventListener('scroll', update, { passive: true });
+}
 
-  const formatDateBR = (iso) => {
-    const [y, m, d] = iso.split('-');
-    return y && m && d ? `${d}/${m}/${y}` : iso;
-  };
+/* ---------- Animações de entrada ---------- */
+function initReveal() {
+  const items = $$('.reveal');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || !('IntersectionObserver' in window)) {
+    items.forEach((el) => el.classList.add('visible'));
+    return;
+  }
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  items.forEach((el) => observer.observe(el));
+}
 
-  const todayISO = () => {
-    const t = new Date();
-    t.setMinutes(t.getMinutes() - t.getTimezoneOffset());
-    return t.toISOString().split('T')[0];
-  };
+/* ---------- Formulário ---------- */
+function todayISO() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 
-  let toastTimer;
-  const toast = (message, duration = 4500) => {
-    const el = $('#toast');
-    if (!el) return;
-    el.textContent = message;
-    el.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('show'), duration);
-  };
+function formatDateBR(iso) {
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
 
-  const copyToClipboard = async (text) => {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-      return true;
+function setError(form, name, message) {
+  const field = form.elements[name];
+  const slot = $(`[data-error-for="${name}"]`, form);
+  if (slot) slot.textContent = message || '';
+  if (field) {
+    if (message) field.setAttribute('aria-invalid', 'true');
+    else field.removeAttribute('aria-invalid');
+  }
+}
+
+function validate(form) {
+  const errors = {};
+  const nome = form.elements.nome.value.trim();
+  const produto = form.elements.produto.value;
+  const quantidade = form.elements.quantidade.value.trim();
+  const data = form.elements.data.value;
+
+  if (nome.length < 2) errors.nome = 'Informe seu nome.';
+  if (!produto) errors.produto = 'Selecione uma opção.';
+
+  if (quantidade) {
+    const n = Number(quantidade);
+    if (!Number.isInteger(n) || n < 1 || n > 1000) errors.quantidade = 'Informe um número inteiro entre 1 e 1000.';
+  }
+  if (data && data < todayISO()) errors.data = 'Escolha uma data a partir de hoje.';
+
+  ['nome', 'produto', 'quantidade', 'data'].forEach((name) => setError(form, name, errors[name]));
+  return errors;
+}
+
+function buildMessage(form) {
+  const v = (name) => form.elements[name].value.trim();
+  const lines = [
+    'Olá! Gostaria de fazer um pedido na Aromaéssence.',
+    `Nome: ${v('nome')}`,
+    `Interesse: ${v('produto')}`,
+  ];
+  if (v('fragrancia')) lines.push(`Fragrância: ${v('fragrancia')}`);
+  if (v('quantidade')) lines.push(`Quantidade: ${v('quantidade')}`);
+  if (v('data')) lines.push(`Data desejada: ${formatDateBR(v('data'))}`);
+  if (v('mensagem')) lines.push(`Observações: ${v('mensagem')}`);
+  return lines.join('\n');
+}
+
+function openUrl(url) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function initForm() {
+  const form = $('#quoteForm');
+  if (!form) return;
+
+  const dateInput = form.elements.data;
+  if (dateInput) dateInput.min = todayISO();
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errors = validate(form);
+    const firstInvalid = Object.keys(errors)[0];
+    if (firstInvalid) {
+      form.elements[firstInvalid].focus();
+      return;
     }
-    // Fallback para contextos não seguros (ex.: file://)
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.setAttribute('readonly', '');
-    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
-    document.body.appendChild(ta);
-    ta.select();
-    let ok = false;
-    try { ok = document.execCommand('copy'); } catch { ok = false; }
-    ta.remove();
-    return ok;
-  };
 
-  /* ---------- Marca JS ativo (habilita animações) ---------- */
-  document.documentElement.classList.add('js');
+    const message = buildMessage(form);
 
-  /* ---------- Menu mobile ---------- */
-  const initMenu = () => {
-    const button = $('#menuButton');
-    const nav = $('#navLinks');
-    if (!button || !nav) return;
-
-    const setOpen = (open) => {
-      button.setAttribute('aria-expanded', String(open));
-      button.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
-      button.textContent = open ? '✕' : '☰';
-      nav.classList.toggle('open', open);
-    };
-
-    button.addEventListener('click', () => setOpen(button.getAttribute('aria-expanded') !== 'true'));
-    nav.addEventListener('click', (e) => { if (e.target.closest('a')) setOpen(false); });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && nav.classList.contains('open')) { setOpen(false); button.focus(); }
-    });
-    document.addEventListener('click', (e) => {
-      if (nav.classList.contains('open') && !e.target.closest('.header')) setOpen(false);
-    });
-    window.matchMedia('(min-width: 851px)').addEventListener('change', (mq) => { if (mq.matches) setOpen(false); });
-  };
-
-  /* ---------- Header com sombra ao rolar ---------- */
-  const initHeader = () => {
-    const header = $('#header');
-    if (!header) return;
-    let ticking = false;
-    const update = () => { header.classList.toggle('scrolled', window.scrollY > 8); ticking = false; };
-    window.addEventListener('scroll', () => {
-      if (!ticking) { requestAnimationFrame(update); ticking = true; }
-    }, { passive: true });
-    update();
-  };
-
-  /* ---------- Animação de entrada (IntersectionObserver) ---------- */
-  const initReveal = () => {
-    const items = $$('.reveal');
-    if (!items.length) return;
-    if (!('IntersectionObserver' in window)) { items.forEach((i) => i.classList.add('visible')); return; }
-
-    const observer = new IntersectionObserver((entries, obs) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          obs.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
-
-    items.forEach((el, i) => {
-      el.style.transitionDelay = `${Math.min((i % 3) * 80, 240)}ms`;
-      observer.observe(el);
-    });
-  };
-
-  /* ---------- Pré-seleção de produto no formulário ---------- */
-  const initProductLinks = () => {
-    const select = $('#produto');
-    if (!select) return;
-    $$('[data-product]').forEach((link) => {
-      link.addEventListener('click', () => {
-        const wanted = link.dataset.product;
-        const exists = Array.from(select.options).some((o) => o.value === wanted || o.text === wanted);
-        if (exists) {
-          select.value = wanted;
-          clearError(select);
-        }
-      });
-    });
-  };
-
-  /* ---------- Formulário ---------- */
-  const errorEl = (field) => $(`[data-error-for="${field.name}"]`);
-
-  function showError(field, message) {
-    field.setAttribute('aria-invalid', 'true');
-    const el = errorEl(field);
-    if (el) el.textContent = message;
-  }
-
-  function clearError(field) {
-    field.removeAttribute('aria-invalid');
-    const el = errorEl(field);
-    if (el) el.textContent = '';
-  }
-
-  const validators = {
-    nome: (v) => (v.length < 2 ? 'Informe seu nome.' : ''),
-    produto: (v) => (!v ? 'Selecione um produto.' : ''),
-    quantidade: (v) => {
-      if (!v) return '';
-      const n = Number(v);
-      return Number.isInteger(n) && n >= 1 && n <= 100000 ? '' : 'Use um número entre 1 e 100.000.';
-    },
-    data: (v) => (v && v < todayISO() ? 'Escolha uma data a partir de hoje.' : '')
-  };
-
-  const buildMessage = (d) =>
-    [
-      `Olá! Meu nome é ${d.nome}.`,
-      `Tenho interesse em: ${d.produto}.`,
-      d.quantidade ? `Quantidade aproximada: ${d.quantidade}.` : '',
-      d.data ? `Data desejada: ${formatDateBR(d.data)}.` : '',
-      d.mensagem ? `Detalhes: ${d.mensagem}` : ''
-    ].filter(Boolean).join('\n');
-
-  const initForm = () => {
-    const form = $('#quoteForm');
-    if (!form) return;
-
-    const dateInput = $('#data');
-    if (dateInput) dateInput.min = todayISO();
-
-    let lastSubmit = 0;
-
-    // Validação em tempo real após primeira interação
-    Object.keys(validators).forEach((name) => {
-      const field = form.elements[name];
-      if (!field) return;
-      field.addEventListener('blur', () => {
-        const msg = validators[name](sanitize(field.value));
-        msg ? showError(field, msg) : clearError(field);
-      });
-      field.addEventListener('input', () => { if (field.getAttribute('aria-invalid')) clearError(field); });
-    });
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      // Honeypot: bots preenchem; humanos não veem
-      if (form.elements.website && form.elements.website.value) return;
-
-      const now = Date.now();
-      if (now - lastSubmit < CONFIG.minIntervalMs) return;
-
-      const data = {
-        nome: sanitize(form.elements.nome.value),
-        produto: sanitize(form.elements.produto.value),
-        quantidade: sanitize(form.elements.quantidade.value),
-        data: sanitize(form.elements.data.value),
-        mensagem: sanitize(form.elements.mensagem.value)
-      };
-
-      let firstInvalid = null;
-      Object.keys(validators).forEach((name) => {
-        const field = form.elements[name];
-        const msg = validators[name](data[name]);
-        if (msg) { showError(field, msg); firstInvalid = firstInvalid || field; }
-        else clearError(field);
-      });
-      if (firstInvalid) { firstInvalid.focus(); return; }
-
-      lastSubmit = now;
-      const message = buildMessage(data);
-      const number = sanitize(CONFIG.whatsappNumber).replace(/\D/g, '');
-
-      if (number) {
-        const url = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
-        window.open(url, '_blank', 'noopener,noreferrer');
-        toast('Abrindo o WhatsApp com sua mensagem…');
-        return;
-      }
-
+    if (!CONFIG.whatsappNumber) {
       try {
-        const ok = await copyToClipboard(message);
-        toast(ok
-          ? 'Mensagem copiada! Configure o número do WhatsApp para ativar o envio direto.'
-          : 'Não foi possível copiar automaticamente. Selecione e copie a mensagem exibida.');
-        if (!ok) window.prompt('Copie a mensagem abaixo:', message);
+        await navigator.clipboard.writeText(message);
+        showToast('Mensagem copiada. Cole no WhatsApp para enviar.');
       } catch {
-        window.prompt('Copie a mensagem abaixo:', message);
+        showToast('Não foi possível abrir o WhatsApp.');
       }
-    });
-  };
+      return;
+    }
 
-  /* ---------- Rodapé ---------- */
-  const initYear = () => {
-    const el = $('#year');
-    if (el) el.textContent = new Date().getFullYear();
-  };
+    openUrl(whatsappUrl(message));
+    showToast('Abrindo o WhatsApp com a mensagem pronta…');
+  });
 
-  /* ---------- Init ---------- */
-  const init = () => {
-    initMenu();
-    initHeader();
-    initReveal();
-    initProductLinks();
-    initForm();
-    initYear();
-  };
+  form.addEventListener('input', (e) => {
+    const name = e.target.name;
+    if (name && e.target.getAttribute('aria-invalid') === 'true') setError(form, name, '');
+  });
+}
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
-})();
+function init() {
+  initWhatsAppLinks();
+  initYear();
+  initMenu();
+  initHeader();
+  initReveal();
+  initForm();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

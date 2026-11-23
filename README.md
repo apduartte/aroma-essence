@@ -1,98 +1,54 @@
 # Aromaéssence
 
-> **Status:** versão demonstrativa. Imagens ilustrativas, produtos e condições comerciais sujeitos à confirmação da marca.
+Landing page da **Coleção Especial de Natal 2026** da Aromaéssence: coleções aromáticas, fragrâncias e pedidos pelo WhatsApp.
 
-## Visão geral
-
-Site estático, sem framework e sem etapa de build: HTML semântico, CSS com variáveis e JavaScript modular em um único arquivo. Pode ser publicado em qualquer hospedagem estática.
-
-| Item | Detalhe |
-|---|---|
-| Tipo | Landing page de página única, com seções por âncora |
-| Stack | HTML5, CSS3, JavaScript (ES6+) |
-| Dependências | Nenhuma (apenas Google Fonts via CDN) |
-| Hospedagem | Vercel (qualquer host estático serve) |
-
-## Funcionalidades
-
-- Seções: marca, coleções de produtos, coleção sazonal de Natal, corporativo e eventos, contato e FAQ.
-- Formulário de orçamento com validação campo a campo, mensagens de erro acessíveis e campo oculto contra robôs (honeypot).
-- Geração automática da mensagem e envio por WhatsApp (`wa.me`). Sem número configurado, a mensagem é copiada para a área de transferência.
-- Seleção automática do produto no formulário ao clicar em "Consultar produto".
-- Menu mobile acessível (fecha com Esc, clique fora ou troca de breakpoint).
-- Animações de entrada com `IntersectionObserver` e respeito a `prefers-reduced-motion`.
-- Layout responsivo (desktop, tablet e celular).
-- SEO básico: meta description, Open Graph e dados estruturados JSON-LD.
-- Acessibilidade: link "Pular para o conteúdo", `aria-*`, foco visível e rótulos associados aos campos.
+Site estático, sem framework e sem etapa de build (HTML, CSS e JavaScript puros). Pode ser publicado em qualquer hospedagem estática.
 
 ## Estrutura
 
 ```
 aroma-essence/
-├── index.html   # Estrutura e conteúdo
-├── styles.css   # Design tokens, layout, componentes e responsivo
-└── script.js    # Menu, header, animações, validação e envio do formulário
+├── index.html
+├── styles.css
+├── script.js
+├── 404.html
+├── robots.txt
+├── vercel.json
+└── assets/img/   logo, favicon, capa, coleções, fragrâncias e og-image
 ```
 
-## Como executar localmente
+## Conteúdo
 
-Não há instalação. Escolha uma opção:
-
-```bash
-# Opção 1: abrir o arquivo diretamente
-# (dê dois cliques em index.html)
-
-# Opção 2: servidor local simples
-python3 -m http.server 8000
-# acesse http://localhost:8000
-```
+- 4 coleções: Alegria (R$ 170,00), Bons Sonhos (R$ 75,00), Aromática (R$ 150,00) e Serenidade (R$ 110,00).
+- 4 fragrâncias: Cereja com Avelã, Maçã com Canela, Noite de Natal e Dia a Dia Bambu.
+- Essência personalizada sob consulta.
+- Formulário que monta a mensagem e abre o WhatsApp (nada é armazenado).
 
 ## Configuração
 
-### WhatsApp
+- **WhatsApp:** `CONFIG.whatsappNumber` em `script.js` (DDI + DDD + número, só dígitos). Os links em `index.html` também trazem o número como fallback para quando o JavaScript estiver desativado.
+- **Identidade visual:** variáveis em `:root` no início de `styles.css`.
+- **Domínio:** depois de definir o domínio, troque `SEU-DOMINIO` em `index.html` (canonical, `og:url`, `og:image` e JSON-LD):
 
-Em `script.js`, preencha `whatsappNumber` com DDI + DDD + número, somente dígitos:
-
-```js
-const CONFIG = {
-  whatsappNumber: '5511972307467',
-  // ...
-};
+```
+sed -i 's/SEU-DOMINIO/aromaessence.com.br/g' index.html
 ```
 
-Enquanto estiver vazio, o formulário copia a mensagem preparada para o usuário enviar manualmente.
+## Executar localmente
 
-### Identidade visual
-
-As cores e fontes ficam nas variáveis CSS no início de `styles.css` (`:root`), como `--primary`, `--accent` e `--font-display`.
-
-### Antes de publicar em produção
-
-- Preencher o número oficial do WhatsApp.
-- Remover a faixa "SITE DEMONSTRATIVO" do `index.html` e ajustar o texto do rodapé.
-- Substituir as ilustrações em CSS por fotos reais dos produtos, se houver.
-- Confirmar com a marca preços, composição dos kits e compatibilidade das cápsulas.
+```
+python3 -m http.server 8000
+# http://localhost:8000
+```
 
 ## Deploy na Vercel
 
-1. Acesse [vercel.com/new](https://vercel.com/new) e importe este repositório.
-2. Mantenha **Framework Preset** em *Other*, sem *Build Command* nem *Output Directory*.
-3. Clique em **Deploy**. Cada `git push` na branch `main` gera uma nova publicação.
+1. Em vercel.com/new, importe este repositório.
+2. **Framework Preset:** Other. Deixe Build Command, Output Directory e Install Command vazios.
+3. Clique em **Deploy**. Cada `git push` na `main` publica em produção.
 
-## Decisões técnicas
+## Antes de divulgar
 
-- **Sem framework:** a página é estática e pequena, então HTML, CSS e JS puros dão carregamento rápido e manutenção simples.
-- **CSS com design tokens:** cores, fontes e espaçamentos centralizados em variáveis facilitam trocar a identidade visual.
-- **JavaScript em módulos internos:** cada funcionalidade (menu, header, animações, formulário) tem sua função de inicialização.
-- **Progressive enhancement:** a classe `js` só é adicionada quando o script carrega, então o conteúdo continua visível sem JavaScript.
-
-## Roadmap sugerido
-
-- Fotos reais e galeria de produtos.
-- Analytics e acompanhamento de conversões (cliques no formulário e no WhatsApp).
-- Domínio próprio.
-- Páginas separadas para as linhas de produto, se o catálogo crescer.
-
-## Autoria
-
-Desenvolvido por [Ana Paula Duarte](https://github.com/apduartte).
+- Confirmar com a marca prazos, entrega e formas de pagamento.
+- Substituir as fotos por arquivos originais em alta resolução, mantendo os mesmos nomes.
+- Trocar `SEU-DOMINIO` e criar `sitemap.xml` com a URL final.
