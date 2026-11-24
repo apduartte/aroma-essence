@@ -19,7 +19,7 @@ aroma-essence/
 
 ## Conteúdo
 
-- 4 coleções: Alegria (R$ 170,00), Bons Sonhos (R$ 75,00), Aromática (R$ 150,00) e Serenidade (R$ 110,00).
+- 4 coleções: Alegria (R$ 170,00), Bons Sonhos (R$ 75,00), Bem-Estar (R$ 150,00) e Serenidade (R$ 110,00).
 - 4 fragrâncias: Cereja com Avelã, Maçã com Canela, Noite de Natal e Dia a Dia Bambu.
 - Essência personalizada sob consulta.
 - Formulário que monta a mensagem e abre o WhatsApp (nada é armazenado).
